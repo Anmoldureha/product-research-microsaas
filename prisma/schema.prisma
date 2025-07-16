@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  credits      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  orders   Order[]
+  reports  Report[]
+  sessions Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(references: [id], fields: [userId], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  userId       String
+  amount       Int         // in INR paise
+  phonepeTxnId String?     // PhonePe transaction id
+  stripeTxnId  String?     // Stripe transaction id
+  status       OrderStatus @default(PENDING)
+  searches     Int         // number of credits bought
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  userId    String
+  product   String
+  jsonData  Json     // full 8-section payload
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+enum OrderStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
